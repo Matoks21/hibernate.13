@@ -1,0 +1,130 @@
+plugins {
+    id 'java'
+    id 'org.flywaydb.flyway' version '8.5.0'
+    id 'application'
+    id 'jacoco'
+    id 'org.barfuin.gradle.jacocolog' version '1.0.1'
+}
+
+group 'org.example'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // This dependency is found on compile classpath of this component and consumers.
+    implementation 'com.google.guava:guava:31.1-jre'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // https://mvnrepository.com/artifact/com.h2database/h2
+    implementation 'com.h2database:h2:2.1.210'
+// https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+
+    // https://mvnrepository.com/artifact/com.google.code.gson/gson
+    implementation 'com.google.code.gson:gson:2.9.0'
+    // https://mvnrepository.com/artifact/com.github.stefanbirkner/system-rules
+    testImplementation 'com.github.stefanbirkner:system-rules:1.19.0'
+// https://mvnrepository.com/artifact/org.flywaydb/flyway-core
+    implementation 'org.flywaydb:flyway-core:8.5.13'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+
+// https://mvnrepository.com/artifact/org.hibernate.orm/hibernate-core
+    implementation 'org.hibernate.orm:hibernate-core:6.1.0.Final'
+
+
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "HibernateUtil"
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+jar {
+    duplicatesStrategy = 'exclude'
+}
+
+
+application {
+    mainClass = 'HibernateUtil'
+}
+task testClass1(type: Test) {
+    include 'TicketCrudServiceTest'
+}
+
+task testClass2(type: Test) {
+    include 'PlanetCrudServiceTest'
+}
+
+task testClass3(type: Test) {
+    include 'ClientCrudServiceTest'
+}
+
+testClass2.mustRunAfter testClass1
+testClass3.mustRunAfter testClass2
+
+task sequentialTests {
+    dependsOn testClass1, testClass2, testClass3
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+
+test {
+    // Enable JUnit 5 (Gradle 4.6+).
+    useJUnitPlatform()
+
+    // Always run tests, even when nothing changed.
+    dependsOn 'cleanTest'
+
+    // Show test results.
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    finalizedBy jacocoTestReport
+    jacoco {
+        destinationFile = layout.buildDirectory.file('jacoco/jacocoTest.exec').get().asFile
+        classDumpDir = layout.buildDirectory.dir('jacoco/classpathdumps').get().asFile
+    }
+}
+
+
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+}
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.7
+            }
+        }
+
+        rule {
+            enabled = false
+            element = 'CLASS'
+            includes = ['org.gradle.*']
+
+            limit {
+                counter = 'LINE'
+                value = 'TOTALCOUNT'
+                maximum = 0.7
+            }
+        }
+    }
+}

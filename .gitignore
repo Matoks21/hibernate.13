@@ -1,0 +1,10 @@
+.idea
+/out
+.iws
+*.iml
+.ipr
+target
+.DS_STORE /src/main/resources/log
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
